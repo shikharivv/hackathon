@@ -1,0 +1,34 @@
+[project]
+name = "hr-policy-llm-rag-assistant"
+version = "1.0.0"
+description = "RAG-powered LLM assistant for HR policy Q&A with citation tracking, guardrails, and evaluation"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+maintainers = [{name = "shikharivv"}]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM"]
+ignore = ["E501", "N803", "N806"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --tb=short"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
