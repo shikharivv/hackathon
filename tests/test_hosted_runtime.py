@@ -34,11 +34,11 @@ def test_api_pipeline_and_index(monkeypatch,tmp_path):
     monkeypatch.setenv('AUDIT_DB_PATH',str(tmp_path/'audit.sqlite3'))
     monkeypatch.setenv('NVIDIA_API_KEY','')
     with TestClient(create_app()) as client:
-        assert client.get('/api/v1/health').json()['documents_indexed']==6
+        assert client.get('/api/v1/health').json()['documents_indexed']==12
         response=client.post('/api/v1/query',json={'question':'annual leave full time entitlement','confidence_threshold':0.1})
         assert response.status_code==200
         assert response.json()['citations']
-        assert client.post('/api/v1/index').json()['documents_loaded']==6
+        assert client.post('/api/v1/index').json()['documents_loaded']==12
 
 
 def test_streamlit_frontend(monkeypatch,tmp_path):
@@ -48,9 +48,16 @@ def test_streamlit_frontend(monkeypatch,tmp_path):
     app=AppTest.from_file(str(ROOT/'app.py')).run(timeout=30)
     assert not app.exception
     assert app.title[0].value == 'HR Policy Assistant'
-    app.chat_input[0].set_value('What is annual leave entitlement?').run(timeout=30)
+    app.chat_input[0].set_value('how can i apply for leave').run(timeout=30)
     assert not app.exception
     assert len(app.chat_message)==2
+    assert any('Confidence in policy match' in element.value for element in app.markdown)
+    assert any('Approval Process' in element.value for element in app.caption)
+    assert any(element.label.startswith('View policy sources') for element in app.expander)
+    reset = next(button for button in app.button if button.label == '＋ New conversation')
+    reset.click().run(timeout=30)
+    assert not app.exception
+    assert len(app.chat_message)==0
 
 
 def test_nvidia_request_configuration(monkeypatch,tmp_path):

@@ -104,6 +104,9 @@ async def query(body: QueryRequest, request: Request) -> QueryResponse:
         fallback_triggered=result.get("fallback_triggered", False),
         guardrail_flags=result.get("guardrail_flags", []),
         latency_ms=_elapsed_ms(start),
+        answer_mode=result.get("answer_mode", "generated"),
+        suggested_questions=result.get("suggested_questions", []),
+        escalation=result.get("escalation"),
     )
 
 

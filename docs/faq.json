@@ -1,0 +1,350 @@
+[
+  {
+    "id": "apply-leave",
+    "questions": [
+      "how can i apply for leave",
+      "how do i apply for annual leave",
+      "how to request leave",
+      "how do i book holiday",
+      "i want to take a day off",
+      "request vacation",
+      "how to apply for time off",
+      "where do i submit a leave request"
+    ],
+    "sections": [
+      "POL-001#4.2",
+      "POL-001#4.1"
+    ]
+  },
+  {
+    "id": "leave-entitlement",
+    "questions": [
+      "how many annual leave days do i get",
+      "annual leave entitlement for full time employees",
+      "how much vacation do i get after 3 years",
+      "what is my holiday allowance"
+    ],
+    "sections": [
+      "POL-001#3.1",
+      "POL-001#3.2"
+    ]
+  },
+  {
+    "id": "sick-leave",
+    "questions": [
+      "how do i apply for sick leave",
+      "i am sick and cannot work",
+      "how do i report illness",
+      "what to do if i am unwell",
+      "do i need a medical certificate"
+    ],
+    "sections": [
+      "POL-011#1",
+      "POL-011#3"
+    ]
+  },
+  {
+    "id": "emergency-leave",
+    "questions": [
+      "how do i request emergency leave",
+      "family emergency cannot come to work",
+      "urgent personal leave"
+    ],
+    "sections": [
+      "POL-011#2"
+    ]
+  },
+  {
+    "id": "unpaid-leave",
+    "questions": [
+      "can i take unpaid leave",
+      "how to request unpaid time off",
+      "unpaid leave eligibility"
+    ],
+    "sections": [
+      "POL-001#10.1",
+      "POL-001#10.2"
+    ]
+  },
+  {
+    "id": "carryover",
+    "questions": [
+      "can i carry over unused vacation days",
+      "does annual leave roll over",
+      "unused holiday carry forward"
+    ],
+    "sections": [
+      "POL-001#5.1",
+      "POL-001#5.2"
+    ]
+  },
+  {
+    "id": "international-remote",
+    "questions": [
+      "can i work remotely from another country",
+      "can i work abroad",
+      "international remote work rules"
+    ],
+    "sections": [
+      "POL-003#9.1",
+      "POL-003#9.2"
+    ]
+  },
+  {
+    "id": "hybrid-work",
+    "questions": [
+      "how many days do i work in the office",
+      "hybrid work policy",
+      "can i work from home"
+    ],
+    "sections": [
+      "POL-003#3.1",
+      "POL-003#3.2",
+      "POL-003#3.3"
+    ]
+  },
+  {
+    "id": "clock-correction",
+    "questions": [
+      "i forgot to clock in",
+      "missed clock out",
+      "how to correct my attendance hours",
+      "time correction request"
+    ],
+    "sections": [
+      "POL-007#2"
+    ]
+  },
+  {
+    "id": "late",
+    "questions": [
+      "i am running late for my shift",
+      "who do i tell if i will be late",
+      "late attendance reporting"
+    ],
+    "sections": [
+      "POL-007#3"
+    ]
+  },
+  {
+    "id": "roster",
+    "questions": [
+      "where can i see my roster",
+      "how to check my shift schedule",
+      "when is my next shift"
+    ],
+    "sections": [
+      "POL-009#1"
+    ]
+  },
+  {
+    "id": "swap",
+    "questions": [
+      "how do i swap shifts",
+      "can a colleague cover my shift",
+      "shift exchange request"
+    ],
+    "sections": [
+      "POL-009#2"
+    ]
+  },
+  {
+    "id": "availability",
+    "questions": [
+      "how to change my availability",
+      "change working hours on the roster"
+    ],
+    "sections": [
+      "POL-009#3"
+    ]
+  },
+  {
+    "id": "overtime",
+    "questions": [
+      "do i need approval for overtime",
+      "how to request overtime",
+      "can i work extra hours"
+    ],
+    "sections": [
+      "POL-009#4"
+    ]
+  },
+  {
+    "id": "breaks",
+    "questions": [
+      "when can i take a break",
+      "what are the meal break rules",
+      "how long is my lunch break"
+    ],
+    "sections": [
+      "POL-009#5"
+    ]
+  },
+  {
+    "id": "payslip",
+    "questions": [
+      "where do i find my payslip",
+      "how to download salary slip",
+      "payslip not visible"
+    ],
+    "sections": [
+      "POL-008#1"
+    ]
+  },
+  {
+    "id": "pay-correction",
+    "questions": [
+      "my salary is wrong",
+      "my pay is missing hours",
+      "how to report an incorrect payslip",
+      "payroll correction"
+    ],
+    "sections": [
+      "POL-008#2"
+    ]
+  },
+  {
+    "id": "expenses",
+    "questions": [
+      "how to claim reimbursement",
+      "how do i submit an expense claim",
+      "where do i upload receipts"
+    ],
+    "sections": [
+      "POL-008#3",
+      "POL-008#5"
+    ]
+  },
+  {
+    "id": "bank",
+    "questions": [
+      "how do i update bank details",
+      "change salary bank account"
+    ],
+    "sections": [
+      "POL-008#4"
+    ]
+  },
+  {
+    "id": "uniform",
+    "questions": [
+      "how do i get a uniform",
+      "request replacement uniform",
+      "change uniform size"
+    ],
+    "sections": [
+      "POL-010#1"
+    ]
+  },
+  {
+    "id": "discount",
+    "questions": [
+      "how do i use staff discount",
+      "employee discount rules",
+      "what is the staff discount percentage"
+    ],
+    "sections": [
+      "POL-010#2"
+    ]
+  },
+  {
+    "id": "training",
+    "questions": [
+      "what training do i need to complete",
+      "required retail training",
+      "where are my learning modules"
+    ],
+    "sections": [
+      "POL-010#3"
+    ]
+  },
+  {
+    "id": "profile",
+    "questions": [
+      "how do i update my address",
+      "change emergency contact",
+      "update my phone number"
+    ],
+    "sections": [
+      "POL-010#4"
+    ]
+  },
+  {
+    "id": "badge",
+    "questions": [
+      "i lost my staff badge",
+      "locked out of employee portal",
+      "forgot my password"
+    ],
+    "sections": [
+      "POL-010#5"
+    ]
+  },
+  {
+    "id": "resignation",
+    "questions": [
+      "how do i resign",
+      "what is my notice period",
+      "leaving the company procedure"
+    ],
+    "sections": [
+      "POL-010#6"
+    ]
+  },
+  {
+    "id": "onboarding",
+    "questions": [
+      "what happens on my first day",
+      "new employee onboarding process"
+    ],
+    "sections": [
+      "POL-004#4.1",
+      "POL-004#4.2"
+    ]
+  },
+  {
+    "id": "probation",
+    "questions": [
+      "how long is probation",
+      "probation period duration"
+    ],
+    "sections": [
+      "POL-004#7.1"
+    ]
+  },
+  {
+    "id": "retirement",
+    "questions": [
+      "what is the 401k matching policy",
+      "retirement plan employer match"
+    ],
+    "sections": [
+      "POL-002#7.1"
+    ]
+  },
+  {
+    "id": "concern",
+    "questions": [
+      "how do i report harassment",
+      "how do i raise a grievance",
+      "report a workplace concern"
+    ],
+    "sections": [
+      "POL-006#5.3",
+      "POL-012#4"
+    ]
+  },
+  {
+    "id": "hr-contact",
+    "questions": [
+      "who do i contact in hr",
+      "how to contact human resources",
+      "where can i get hr support"
+    ],
+    "sections": [
+      "POL-012#1",
+      "POL-012#2",
+      "POL-012#3"
+    ]
+  }
+]

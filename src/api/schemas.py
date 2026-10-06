@@ -33,6 +33,9 @@ class QueryResponse(BaseModel):
     fallback_triggered: bool
     guardrail_flags: list[str]
     latency_ms: float
+    answer_mode: str = "generated"
+    suggested_questions: list[str] = Field(default_factory=list)
+    escalation: dict | None = None
 
 
 class HealthResponse(BaseModel):
