@@ -13,6 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 from src.rag.answer_prompt import SYSTEM_PROMPT
 from src.rag.escalation import build_escalation
+from src.rag.conversation import conversation_route, GENERAL_PROMPT
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / '.env')
@@ -76,13 +77,15 @@ class PolicyRuntime:
         model = os.getenv('NVIDIA_MODEL', 'nvidia/nemotron-3-super-120b-a12b')
         context = '\n\n'.join(f"[{s['section_id']} | {s['section']} | v{s['version']}]\n{s['chunk_text']}" for s in sources)
         payload = dict(model=model, temperature=0.2, top_p=1, max_tokens=1024, stream=False, messages=[
-            dict(role='system', content=SYSTEM_PROMPT),
-            dict(role='user', content=f'POLICY EXCERPTS:\n{context}\n\nQUESTION:\n{question}')])
+            dict(role='system', content=SYSTEM_PROMPT if sources else GENERAL_PROMPT),
+            dict(role='user', content=f'POLICY EXCERPTS:\n{context}\n\nQUESTION:\n{question}' if sources else question)],
+            chat_template_kwargs={'enable_thinking':False})
         request = Request('https://integrate.api.nvidia.com/v1/chat/completions',
             data=json.dumps(payload).encode(), headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
         try:
             with urlopen(request, timeout=45) as response:
-                return json.load(response)['choices'][0]['message']['content']
+                content=json.load(response)['choices'][0]['message']['content'] or ''
+                return re.sub(r'<think\b[^>]*>[\s\S]*?</think>', '', content, flags=re.I).strip()
         except HTTPError as exc:
             raise RuntimeError(f'NVIDIA returned HTTP {exc.code}; check key, model access, and quota') from None
         except (URLError, TimeoutError):
@@ -90,6 +93,24 @@ class PolicyRuntime:
 
     def query(self, question, top_k=5, confidence_threshold=None):
         start = time.perf_counter()
+        conversational=conversation_route(question)
+        if conversational is not None:
+            flags=[]
+            answer=conversational
+            if not answer:
+                try:
+                    answer=self.generate(question,[])
+                    if not isinstance(answer,str) or not answer.strip():
+                        raise ValueError('Empty general answer')
+                except Exception:
+                    answer="I'm unable to answer that general question right now. Try again shortly, or ask me about an HR policy."
+                    flags=['llm_error']
+            result=dict(answer=answer,citations=[],confidence=0.0,sources_used=0,
+                        fallback_triggered=bool(flags),guardrail_flags=flags,
+                        latency_ms=round((time.perf_counter()-start)*1000,2),
+                        answer_mode='general',show_confidence=False,suggested_questions=[],escalation=None)
+            self._log(question,result)
+            return result
         threshold = float(confidence_threshold if confidence_threshold is not None else os.getenv('CONFIDENCE_THRESHOLD','0.15'))
         sources, confidence, suggestions = self._retrieve(question, top_k, threshold)
         flags = []
@@ -123,7 +144,7 @@ class PolicyRuntime:
             latency_ms=round((time.perf_counter()-start)*1000,2),
             answer_mode='source_excerpt' if sources and flags else ('clarification' if not sources else 'generated'),
             suggested_questions=suggestions,
-            escalation=build_escalation(question, confidence))
+            escalation=build_escalation(question, confidence),show_confidence=True)
         self._log(question,result)
         return result
 

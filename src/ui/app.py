@@ -11,7 +11,7 @@ import streamlit as st
 from loguru import logger
 
 from src.config.settings import get_settings
-from src.rag.escalation import build_escalation
+from src.rag.escalation import build_escalation, create_ticket
 
 # ------------------------------------------------------------------
 # Constants
@@ -270,9 +270,11 @@ def _hr_contacts(runtime):
 
 
 def _render_confidence(data):
+    if data.get('show_confidence') is False or data.get('answer_mode')=='general':
+        return
     score=min(1.0,max(0.0,float(data.get('confidence',0))))
     if score<0.45:
-        theme,label='unclear','HR ticket drafted'
+        theme,label='unclear','HR review recommended · Ticket available'
     elif data.get('answer_mode')=='clarification':
         theme,label='unclear','A little more detail will help'
     elif score>=0.60:
@@ -333,11 +335,16 @@ def _render_extra(data: dict[str, Any], message_key: str = 'answer') -> None:
         if escalation.get('demo_contact'):
             st.caption('Demo contact only: this address is not monitored. Use your company HR channel.')
         ticket=escalation.get('ticket')
+        if escalation.get('action')=='offer_ticket' and not ticket:
+            if st.button('Create HR ticket',key='create_ticket_'+message_key):
+                escalation['ticket']=create_ticket(escalation['question'],float(data.get('confidence',0)))
+                _save_conversation()
+                st.rerun()
         if ticket:
             with st.container(border=True):
                 st.subheader('HR ticket created')
                 st.caption(f"{ticket['id']} · {ticket['status']}")
-                st.write('The policy match is below 45%. Review this ticket and forward it to HR for help.')
+                st.write('You created this ticket for HR review. You can download it or forward it to HR.')
                 st.text(ticket['body'])
                 st.download_button('Download ticket',ticket['body'],file_name=ticket['id']+'.txt',mime='text/plain',key='ticket_'+message_key)
                 if not escalation.get('demo_contact'):
@@ -363,7 +370,8 @@ def _render_extra(data: dict[str, Any], message_key: str = 'answer') -> None:
     # Latency
     latency = data.get("latency_ms", 0.0)
     if latency:
-        st.caption(f"Answered in {latency/1000:.1f}s · Based on documented policies")
+        suffix=' · Based on documented policies' if data.get('answer_mode')!='general' else ''
+        st.caption(f"Answered in {latency/1000:.1f}s{suffix}")
 
 
 # ------------------------------------------------------------------

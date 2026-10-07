@@ -7,7 +7,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-Optional_API-009688?logo=fastapi&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-**Policy-backed answers. Clear HR contacts. Automatic ticket drafts when the policy match is weak.**
+**Policy-backed answers. Clear HR contacts. Optional HR ticket drafts when the policy match is weak.**
 
 ### Executive Summary
 
@@ -21,7 +21,7 @@ The working demo includes **12 policy documents, 198 indexed sections, and 30 cu
 |---|---|
 | **60% or above** | Normal policy-backed answer |
 | **45% to below 60%** | Guidance plus a recommendation to contact HR and contact details |
-| **Below 45%** | Automatically create a ticket draft with a unique ID and download option; recommend forwarding it to HR |
+| **Below 45%** | Show a Create HR ticket button; clicking creates a draft with a unique ID and download option |
 
 Tickets are drafts, not submissions to an HR system. A configured real HR email enables a button that opens an email draft for the employee to review and send. The score measures retrieval relevance, **not the probability that an answer is correct**.
 
@@ -122,7 +122,7 @@ The index is built in memory from the documents when the runtime starts. Updatin
 - **Top-K:** up to 5 sections for general section search.
 - **Retrieval cutoff:** defaults to `0.15`; this determines which sections can be supplied as evidence.
 - **FAQ routing:** requires a distinct match of at least `0.42` and maps to specified policy sections.
-- **Human escalation thresholds:** below `0.60` recommends HR; below `0.45` creates a ticket draft.
+- **Human escalation thresholds:** below `0.60` recommends HR; below `0.45` offers a Create HR ticket button.
 
 The retrieval cutoff and human escalation thresholds serve different purposes. Vague or unsupported questions receive clarification suggestions.
 
@@ -158,7 +158,7 @@ The current serving path combines four practical controls:
 1. **Grounded prompt:** the model receives retrieved excerpts and instructions to avoid inventing entitlements, forms, contacts, deadlines, or approvals.
 2. **Citation check:** generated policy IDs must belong to the supplied evidence; failed checks return source excerpts.
 3. **Useful fallback:** unavailable generation returns the documented guidance directly; missing evidence offers clarification.
-4. **Human escalation:** scores below 60% show HR contact guidance; scores below 45% also create a downloadable ticket draft.
+4. **Human escalation:** scores below 60% show HR contact guidance; scores below 45% also offer a button to create a downloadable ticket draft.
 
 The separate `guardrails.py` module contains additional legacy heuristics, but those are not part of the current Streamlit runtime. Grounding and citation checks reduce risk; they do not guarantee factual correctness.
 
@@ -166,7 +166,7 @@ The separate `guardrails.py` module contains additional legacy heuristics, but t
 
 Automated tests verify FAQ routing, policy metadata, API responses, service failure handling, citation fallback, workspace navigation, and ticket escalation.
 
-The escalation tests cover both threshold boundaries: exactly **45%** recommends HR without a ticket, and exactly **60%** uses the normal answer flow. A regression test checks that a retained **18%** response receives a ticket and keeps the same ticket ID across reruns.
+The escalation tests cover both threshold boundaries: exactly **45%** recommends HR without a ticket, and exactly **60%** uses the normal answer flow. A regression test checks that a retained **18%** response offers a ticket button and keeps the same ticket ID after creation across reruns.
 
 The repository also retains an evaluation harness for the earlier pipeline. Its simulated metrics are not measured results for the current app.
 
@@ -176,13 +176,13 @@ Current verification is reported as functional checks rather than unsupported ac
 
 | Check | Status |
 |---|---|
-| Focused runtime, UI, API, and escalation suite | 48 tests passed |
+| Focused runtime, UI, API, and escalation suite | 58 tests passed |
 | Policy knowledge base | 12 documents / 198 sections |
 | Curated FAQ routing | All 30 canonical FAQ mappings tested |
 | NVIDIA generation | Tested with live API calls during development |
 | Confidence escalation | Boundary tests and 18% ticket regression covered |
 | Chat navigation, policy search, and HR contacts | Streamlit AppTest coverage |
-| Public Streamlit deployment | Pending |
+| Public Streamlit deployment | https://hackathon-mih.streamlit.app/ (user deployed; live UI not independently inspected) |
 
 The focused runtime/UI/API suite is run before pushing updates. These tests do not measure production accuracy, traffic capacity, or HR time savings.
 
@@ -194,7 +194,7 @@ The focused runtime/UI/API suite is run before pushing updates. These tests do n
 | **Model configuration** | NVIDIA model ID set through server-side environment variables or Streamlit secrets. |
 | **Prompt handling** | Fixed system prompt instructs the model to treat questions and excerpts as data. |
 | **Output monitoring** | Query log records answer, citations, match score, and runtime flags. |
-| **Human review** | HR recommendation below 60%; ticket draft below 45%. |
+| **Human review** | HR recommendation below 60%; ticket creation button below 45%. |
 | **Ticket forwarding** | Employee reviews and sends the email draft; no automatic outbound submission. |
 | **Audit trail** | Local SQLite log; permanent online storage is outside this demo's scope. |
 
@@ -208,7 +208,7 @@ The focused runtime/UI/API suite is run before pushing updates. These tests do n
 - **NVIDIA availability:** generation depends on API access and quota; source excerpts provide a fallback.
 - **Match score:** lexical relevance is not calibrated answer accuracy.
 - **Ticket drafts:** no connected HR ticketing system or automatic email sending. Session history and ticket drafts may be lost when the session ends; tickets can be downloaded.
-- **Deployment:** hosting is prepared, but a public live deployment has not yet been completed.
+- **Deployment:** a public app is deployed on Streamlit Community Cloud; hosting and API quotas apply.
 
 ### Ethical Considerations
 
@@ -270,7 +270,7 @@ To run the focused verification suite:
 
 ```bash
 python -m pip install pytest
-python -m pytest tests/test_escalation.py tests/test_workspace_navigation.py tests/test_hosted_runtime.py tests/test_faq_retrieval.py tests/test_api.py tests/test_config.py tests/test_guardrails.py -q
+python -m pytest tests/test_conversation.py tests/test_escalation.py tests/test_workspace_navigation.py tests/test_hosted_runtime.py tests/test_faq_retrieval.py tests/test_api.py tests/test_config.py tests/test_guardrails.py -q
 ```
 
 #### Streamlit Community Cloud
@@ -301,7 +301,7 @@ hackathon/
 │   │   ├── __init__.py
 │   │   ├── runtime.py           # Active TF-IDF / FAQ retrieval and NVIDIA generation
 │   │   ├── answer_prompt.py     # Grounded answer style and citation instructions
-│   │   ├── escalation.py        # HR recommendation and automatic ticket drafts
+│   │   ├── escalation.py        # HR recommendation and user-created ticket drafts
 │   │   ├── chain.py             # RAG orchestration chain
 │   │   ├── document_loader.py   # Policy document loader
 │   │   ├── embeddings.py        # Embedding model wrapper
@@ -403,7 +403,7 @@ Expected benefits to validate with real users:
 | Employees wait for routine answers | Immediate guidance for supported policy questions |
 | Repeated manual handbook searches | A searchable policy workspace with cited answers |
 | Unclear next step when the assistant is unsure | Visible HR contacts and confidence-based escalation |
-| Employees must restate unresolved questions | Automatically prepared ticket drafts |
+| Employees must restate unresolved questions | Ticket drafts prepared after a user click |
 
 No production time savings, accuracy percentage, or throughput improvement has been measured. The hackathon demo demonstrates the workflow.
 
@@ -416,3 +416,7 @@ No production time savings, accuracy percentage, or throughput improvement has b
 ### License
 
 This project is licensed under the **MIT License** -- see the [LICENSE](LICENSE) file for details.
+
+### General conversation and reasoning mode
+
+Greetings, thanks, and basic assistant questions receive friendly replies without policy scores or ticket controls. Other general questions use NVIDIA generation without policy retrieval. Company and HR policy questions keep the documented retrieval flow. NVIDIA requests set `chat_template_kwargs.enable_thinking` to `false`; the UI displays only final answers. Ticket drafts are created only after the user clicks **Create HR ticket**, never automatically.

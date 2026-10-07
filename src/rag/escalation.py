@@ -11,15 +11,18 @@ def build_escalation(question, confidence):
     channel = os.getenv('HR_CONTACT_CHANNEL', 'HRIS > Support > HR Help')
     result = {'contact': contact, 'channel': channel,
               'demo_contact': contact.endswith('.example'),
-              'action': 'ticket' if confidence < 0.45 else 'contact_hr'}
-    if confidence < 0.45:
-        ticket_id = 'HR-' + uuid4().hex[:10].upper()
-        result['ticket'] = {
-            'id': ticket_id, 'status': 'Draft — not sent to HR',
-            'created_at': datetime.now(timezone.utc).isoformat(),
-            'question': question, 'confidence': confidence,
-            'body': (f'Ticket: {ticket_id}\nStatus: Draft — not sent to HR\n'
-                     f'Employee question: {question}\nPolicy match: {confidence:.1%}\n'
-                     'Reason: Policy match below 45%; human review requested.\n'
-                     'Please review this question and advise on the applicable policy.')}
+              'action': 'offer_ticket' if confidence < 0.45 else 'contact_hr',
+              'question':question}
     return result
+
+
+def create_ticket(question, confidence):
+    ticket_id = 'HR-' + uuid4().hex[:10].upper()
+    return {
+        'id': ticket_id, 'status': 'Draft — not sent to HR',
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'question': question, 'confidence': confidence,
+        'body': (f'Ticket: {ticket_id}\nStatus: Draft — not sent to HR\n'
+                 f'Employee question: {question}\nPolicy match: {confidence:.1%}\n'
+                 'Reason: Policy match below 45%; human review requested.\n'
+                 'Please review this question and advise on the applicable policy.')}

@@ -12,7 +12,7 @@ by the hosted runtime. The new evidence threshold defaults to 0.15 and must be
 tuned; it is not an answer accuracy percentage. NVIDIA failures return a clean
 fallback with source excerpts. With no key, the app shows source excerpts only.
 All demo policies are visible. Below 60% policy match, the app recommends HR contact;
-below 45% it automatically creates a downloadable ticket draft with a unique ID.
+below 45% it offers a Create HR ticket button. Clicking creates a downloadable draft with a unique ID.
 Tickets are not submitted to an HR system. A configured real email enables an email draft
 for the employee to review and send. Citation checks validate document IDs, not every factual
 claim or section ID. Local SQLite audit logs are ephemeral on free cloud hosting.
@@ -60,3 +60,7 @@ The confidence display is a lexical question-to-policy match score, not a
 calibrated probability of answer correctness. Scores near 100% can reflect
 exactly matching a curated FAQ. Model or citation failures show the original
 policy guidance directly. Expanded retail policies and contacts are fictional.
+
+### General conversation and reasoning mode
+
+Greetings, thanks, and basic assistant questions receive friendly replies without policy scores or ticket controls. Other general questions use NVIDIA generation without policy retrieval. Company and HR policy questions keep the documented retrieval flow. NVIDIA requests set `chat_template_kwargs.enable_thinking` to `false`; the UI displays only final answers. Ticket drafts are created only after the user clicks **Create HR ticket**, never automatically.

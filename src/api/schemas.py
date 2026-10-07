@@ -36,6 +36,7 @@ class QueryResponse(BaseModel):
     answer_mode: str = "generated"
     suggested_questions: list[str] = Field(default_factory=list)
     escalation: dict | None = None
+    show_confidence: bool = True
 
 
 class HealthResponse(BaseModel):

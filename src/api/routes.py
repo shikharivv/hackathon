@@ -107,6 +107,7 @@ async def query(body: QueryRequest, request: Request) -> QueryResponse:
         answer_mode=result.get("answer_mode", "generated"),
         suggested_questions=result.get("suggested_questions", []),
         escalation=result.get("escalation"),
+        show_confidence=result.get("show_confidence", True),
     )
 
 
