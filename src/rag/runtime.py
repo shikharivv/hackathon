@@ -76,16 +76,16 @@ class PolicyRuntime:
         if not key:
             raise ValueError('NVIDIA_API_KEY is not configured')
         payload = dict(model=os.getenv('NVIDIA_MODEL', 'nvidia/nemotron-3-super-120b-a12b'),
-                       temperature=0.2, top_p=1, max_tokens=1024, stream=False,
+                       temperature=0.2, top_p=1, max_tokens=8192, stream=False,
                        messages=[dict(role='system',content=system),dict(role='user',content=message)],
-                       chat_template_kwargs={'enable_thinking':False})
+                       chat_template_kwargs={'enable_thinking':True})
         if json_output:
             payload['response_format']={'type':'json_object'}
         request=Request('https://integrate.api.nvidia.com/v1/chat/completions',
                         data=json.dumps(payload).encode(),
                         headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
         try:
-            with urlopen(request,timeout=45) as response:
+            with urlopen(request,timeout=90) as response:
                 content=json.load(response)['choices'][0]['message']['content'] or ''
             content=re.sub(r'<think\b[^>]*>[\s\S]*?</think>','',content,flags=re.I).strip()
             if not content:

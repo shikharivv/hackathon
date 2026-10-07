@@ -133,7 +133,7 @@ The retrieval cutoff and human escalation thresholds serve different purposes. V
 
 - **Provider:** NVIDIA hosted inference at `https://integrate.api.nvidia.com/v1`.
 - **Model:** `nvidia/nemotron-3-super-120b-a12b`.
-- **Temperature:** `0.2`; **maximum output tokens:** `1024`.
+- **Temperature:** `0.2`; **maximum completion tokens (including reasoning):** `8192`.
 - **System prompt:** `src/rag/answer_prompt.py` requests concise, practical answers supported by the supplied excerpts, with compact policy-section citations.
 
 #### 7. Guardrails & Citation
@@ -426,6 +426,8 @@ Every message is interpreted by NVIDIA first. The model decides between general 
 
 For work questions, the model proposes a policy search query. The runtime retrieves candidate sections, and the AI reviews whether they actually address the question before generating an answer. If none is relevant, it writes a tailored response, shows HR contact guidance, and offers **Create HR ticket**. Clicking the button creates a draft; it never creates or sends a ticket automatically.
 
-All NVIDIA requests set `chat_template_kwargs.enable_thinking` to `false`. Routing and relevance review use structured JSON, and only final answers are displayed. A working NVIDIA key is now required for AI intent routing; failures are shown explicitly rather than presented as canned AI replies. Policy excerpts remain a fallback if answer generation fails after routing.
+All NVIDIA requests set `chat_template_kwargs.enable_thinking` to `true`. Routing and relevance review use structured JSON, and only final answers are displayed. A working NVIDIA key is now required for AI intent routing; failures are shown explicitly rather than presented as canned AI replies. Policy excerpts remain a fallback if answer generation fails after routing.
 
 This adds API calls and latency: a general reply normally needs one model request; a work reply can need routing, relevance review, and answer generation. AI classification and relevance assessment can still make mistakes.
+
+Reasoning mode is enabled. Requests allow up to 8,192 completion tokens and a 90-second service timeout to accommodate reasoning; only final answers are shown. Responses may take longer and use more API quota.

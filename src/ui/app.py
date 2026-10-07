@@ -46,7 +46,7 @@ def _query_api(question: str, top_k: int) -> dict[str, Any]:
     resp = httpx.post(
         f"{_API_BASE}/query",
         json={"question": question, "top_k": top_k, "include_sources": True, "confidence_threshold": st.session_state.confidence_threshold},
-        timeout=150.0,
+        timeout=300.0,
     )
     resp.raise_for_status()
     return resp.json()  # type: ignore[no-any-return]

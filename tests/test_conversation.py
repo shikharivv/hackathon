@@ -36,7 +36,7 @@ def test_routing_and_reasoning_configuration(monkeypatch,tmp_path):
     monkeypatch.setenv('NVIDIA_API_KEY','test-only')
     def urlopen(request,timeout):
         payload=json.loads(request.data)
-        assert payload['chat_template_kwargs']['enable_thinking'] is False
+        assert payload['chat_template_kwargs']['enable_thinking'] is True
         assert payload['response_format']=={'type':'json_object'}
         content=json.dumps({'route':'general','answer':'Hello from the AI!','search_query':''})
         return io.BytesIO(json.dumps({'choices':[{'message':{'content':content}}]}).encode())
@@ -51,7 +51,7 @@ def test_irrelevant_policy_is_rejected_by_ai(monkeypatch,tmp_path):
     def urlopen(request,timeout):
         payload=json.loads(request.data)
         calls.append(payload)
-        assert payload['chat_template_kwargs']['enable_thinking'] is False
+        assert payload['chat_template_kwargs']['enable_thinking'] is True
         if len(calls)==1:
             content=json.dumps({'route':'work','answer':'','search_query':'expense reimbursement'})
         elif len(calls)==2:
