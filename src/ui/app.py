@@ -46,7 +46,7 @@ def _query_api(question: str, top_k: int) -> dict[str, Any]:
     resp = httpx.post(
         f"{_API_BASE}/query",
         json={"question": question, "top_k": top_k, "include_sources": True, "confidence_threshold": st.session_state.confidence_threshold},
-        timeout=30.0,
+        timeout=150.0,
     )
     resp.raise_for_status()
     return resp.json()  # type: ignore[no-any-return]
@@ -222,7 +222,7 @@ def main() -> None:
         st.caption('Or start with a common question')
         for column,label,question in zip(st.columns(3),['Leave & time off','Pay & expenses','Shifts & attendance'],['How can I apply for leave?','Where do I find my payslip?','How do I swap shifts?']):
             if column.button(label,key='quick_'+label,use_container_width=True):
-                with st.spinner('Finding the right policy…'):
+                with st.spinner('Understanding your question…'):
                     _handle_question(question)
                 st.rerun()
     else:
@@ -236,7 +236,7 @@ def main() -> None:
                     _render_extra(msg['extra'],f'{st.session_state.active_chat}_{index}')
         prompt=st.chat_input('Ask a follow-up or a new question…',key='question_input')
     if prompt:
-        with st.spinner('Finding the right policy…'):
+        with st.spinner('Understanding your question…'):
             _handle_question(prompt)
         st.rerun()
 

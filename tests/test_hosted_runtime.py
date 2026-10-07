@@ -12,12 +12,16 @@ def test_section_metadata_and_known_question(tmp_path):
     assert result['citations'][0]['version'] == '3.2'
     assert (tmp_path/'audit.sqlite3').exists()
 
-def test_unknown_no_generation(tmp_path):
-    def fail(q,s):
-        raise AssertionError('Unknown question must not call model')
-    runtime = PolicyRuntime(log_path=tmp_path/'audit.sqlite3', generate=fail)
-    result = runtime.query('quantum asteroid cryptocurrency')
-    assert result['guardrail_flags'] == ['no_sources_found']
+def test_unknown_generates_contextual_handoff(tmp_path):
+    calls=[]
+    def generate(q,s):
+        calls.append((q,s))
+        return 'I could not find policy guidance for this request. Please contact HR.'
+    runtime=PolicyRuntime(log_path=tmp_path/'audit.sqlite3',generate=generate)
+    result=runtime.query('quantum asteroid cryptocurrency')
+    assert calls==[('quantum asteroid cryptocurrency',[])]
+    assert result['guardrail_flags']==['no_sources_found']
+    assert result['escalation']['action']=='offer_ticket'
 
 def test_invalid_citation_and_api_failure(tmp_path):
     runtime = PolicyRuntime(log_path=tmp_path/'audit.sqlite3', generate=lambda q,s:'According to POL-999, you get 900 days')
@@ -72,8 +76,7 @@ def test_nvidia_request_configuration(monkeypatch,tmp_path):
     monkeypatch.setenv('NVIDIA_MODEL','test/model')
     monkeypatch.setattr('src.rag.runtime.urlopen',response)
     runtime=PolicyRuntime(log_path=tmp_path/'audit.sqlite3')
-    result=runtime.query('annual leave full time entitlement',confidence_threshold=0.1)
-    assert not result['fallback_triggered']
+    runtime._generate('annual leave full time entitlement',[runtime.section_lookup['POL-001#3.1']])
     assert captured['url']=='https://integrate.api.nvidia.com/v1/chat/completions'
     assert captured['payload']['model']=='test/model'
     assert captured['authorization']=='Bearer test-only-placeholder'

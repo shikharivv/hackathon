@@ -99,3 +99,13 @@ def mock_llm_response() -> MagicMock:
 def sample_query() -> str:
     """Return a representative HR policy question."""
     return "How many vacation days does a new employee get?"
+
+
+@pytest.fixture(autouse=True)
+def isolate_policy_tests_from_live_intent_api(request,monkeypatch):
+    import streamlit as st
+    st.cache_resource.clear()
+    # Existing retrieval/UI tests exercise work routing, without paid network calls.
+    if request.module.__name__.split('.')[-1] in {'test_hosted_runtime','test_faq_retrieval','test_workspace_navigation','test_escalation'}:
+        from src.rag.runtime import PolicyRuntime
+        monkeypatch.setattr(PolicyRuntime,'_classify',lambda self,q:{'route':'work','search_query':q,'answer':''})

@@ -13,15 +13,16 @@ from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 from src.rag.answer_prompt import SYSTEM_PROMPT
 from src.rag.escalation import build_escalation
-from src.rag.conversation import conversation_route, GENERAL_PROMPT
+from src.rag.conversation import ROUTING_PROMPT, GENERAL_PROMPT, RELEVANCE_PROMPT, MISSING_POLICY_PROMPT
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / '.env')
 
 class PolicyRuntime:
-    def __init__(self, policies_dir=None, generate=None, log_path=None):
+    def __init__(self, policies_dir=None, generate=None, log_path=None, classify=None):
         self.policies_dir = Path(policies_dir or ROOT / 'docs/policies')
         self.generate = generate or self._generate
+        self.classify = classify or self._classify
         self.log_path = Path(log_path or os.getenv('AUDIT_DB_PATH', str(ROOT / 'data/audit.sqlite3')))
         self.reindex()
 
@@ -70,81 +71,105 @@ class PolicyRuntime:
         self.documents_indexed = len(files)
         return len(files), len(self.sections)
 
-    def _generate(self, question, sources):
+    def _request(self, system, message, json_output=False):
         key = os.getenv('NVIDIA_API_KEY', '')
         if not key:
             raise ValueError('NVIDIA_API_KEY is not configured')
-        model = os.getenv('NVIDIA_MODEL', 'nvidia/nemotron-3-super-120b-a12b')
-        context = '\n\n'.join(f"[{s['section_id']} | {s['section']} | v{s['version']}]\n{s['chunk_text']}" for s in sources)
-        payload = dict(model=model, temperature=0.2, top_p=1, max_tokens=1024, stream=False, messages=[
-            dict(role='system', content=SYSTEM_PROMPT if sources else GENERAL_PROMPT),
-            dict(role='user', content=f'POLICY EXCERPTS:\n{context}\n\nQUESTION:\n{question}' if sources else question)],
-            chat_template_kwargs={'enable_thinking':False})
-        request = Request('https://integrate.api.nvidia.com/v1/chat/completions',
-            data=json.dumps(payload).encode(), headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+        payload = dict(model=os.getenv('NVIDIA_MODEL', 'nvidia/nemotron-3-super-120b-a12b'),
+                       temperature=0.2, top_p=1, max_tokens=1024, stream=False,
+                       messages=[dict(role='system',content=system),dict(role='user',content=message)],
+                       chat_template_kwargs={'enable_thinking':False})
+        if json_output:
+            payload['response_format']={'type':'json_object'}
+        request=Request('https://integrate.api.nvidia.com/v1/chat/completions',
+                        data=json.dumps(payload).encode(),
+                        headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
         try:
-            with urlopen(request, timeout=45) as response:
+            with urlopen(request,timeout=45) as response:
                 content=json.load(response)['choices'][0]['message']['content'] or ''
-                return re.sub(r'<think\b[^>]*>[\s\S]*?</think>', '', content, flags=re.I).strip()
+            content=re.sub(r'<think\b[^>]*>[\s\S]*?</think>','',content,flags=re.I).strip()
+            if not content:
+                raise RuntimeError('Empty model response')
+            return json.loads(content) if json_output else content
         except HTTPError as exc:
             raise RuntimeError(f'NVIDIA returned HTTP {exc.code}; check key, model access, and quota') from None
-        except (URLError, TimeoutError):
+        except (URLError,TimeoutError):
             raise RuntimeError('NVIDIA service is unavailable; try again later') from None
 
+    def _classify(self, question):
+        decision=self._request(ROUTING_PROMPT,question,json_output=True)
+        if not isinstance(decision,dict) or decision.get('route') not in {'general','work'}:
+            raise ValueError('Invalid AI routing decision')
+        if decision['route']=='general' and (not isinstance(decision.get('answer'),str) or not decision['answer'].strip()):
+            raise ValueError('Invalid general answer')
+        return decision
+
+    @staticmethod
+    def _context(sources):
+        return '\n\n'.join(f"[{s['section_id']} | {s['section']} | v{s['version']}]\n{s['chunk_text']}" for s in sources)
+
+    def _generate(self, question, sources):
+        return self._request(SYSTEM_PROMPT if sources else GENERAL_PROMPT,
+                             f'POLICY EXCERPTS:\n{self._context(sources)}\n\nQUESTION:\n{question}' if sources else question)
+
     def query(self, question, top_k=5, confidence_threshold=None):
-        start = time.perf_counter()
-        conversational=conversation_route(question)
-        if conversational is not None:
-            flags=[]
-            answer=conversational
+        start=time.perf_counter()
+        try:
+            decision=self.classify(question)
+        except Exception:
+            result=dict(answer='The AI service is unavailable, so I could not assess your question. Please try again shortly.',
+                        citations=[],confidence=0.0,sources_used=0,fallback_triggered=True,
+                        guardrail_flags=['routing_unavailable'],latency_ms=round((time.perf_counter()-start)*1000,2),
+                        answer_mode='error',show_confidence=False,suggested_questions=[],escalation=None)
+            self._log(question,result)
+            return result
+        if decision['route']=='general':
+            answer=decision.get('answer','').strip()
             if not answer:
-                try:
-                    answer=self.generate(question,[])
-                    if not isinstance(answer,str) or not answer.strip():
-                        raise ValueError('Empty general answer')
-                except Exception:
-                    answer="I'm unable to answer that general question right now. Try again shortly, or ask me about an HR policy."
-                    flags=['llm_error']
+                answer=self.generate(question,[])
             result=dict(answer=answer,citations=[],confidence=0.0,sources_used=0,
-                        fallback_triggered=bool(flags),guardrail_flags=flags,
-                        latency_ms=round((time.perf_counter()-start)*1000,2),
+                        fallback_triggered=False,guardrail_flags=[],latency_ms=round((time.perf_counter()-start)*1000,2),
                         answer_mode='general',show_confidence=False,suggested_questions=[],escalation=None)
             self._log(question,result)
             return result
-        threshold = float(confidence_threshold if confidence_threshold is not None else os.getenv('CONFIDENCE_THRESHOLD','0.15'))
-        sources, confidence, suggestions = self._retrieve(question, top_k, threshold)
-        flags = []
-        if not sources:
-            answer = ("I don't have a clear policy match for that yet. Could you share a little more about what you need? "
-                      "I can help with leave, payslips, shift swaps, attendance, benefits, or workplace concerns. "
-                      "For a personal case or a question outside these policies, the HR Support Desk can help through HRIS > Support > HR Help "
-                      "(POL-012, section 1; fictional demo contact).")
-            if question.lower().strip(' ?!.') in {'leave', 'time off', 'holiday', 'vacation'}:
-                answer = 'Which type of leave do you need help with: annual leave, sick leave, emergency leave, or unpaid leave? I can walk you through the right process.'
-                suggestions = ['How can I apply for leave?', 'How do I apply for sick leave?', 'How do I request emergency leave?']
-            flags = ['no_sources_found']
-        elif not os.getenv('NVIDIA_API_KEY') and self.generate == self._generate:
-            answer = self._excerpt_answer(sources)
-            flags = ['extractive_mode']
-        else:
-            try:
-                answer = self.generate(question, sources)
-                if not isinstance(answer,str) or not answer.strip():
-                    raise RuntimeError('Empty model answer')
-                citation_text = answer.translate(str.maketrans({'\u2010':'-', '\u2011':'-', '\u2013':'-', '\u2014':'-'}))
-                mentioned = set(re.findall(r'POL-\d+', citation_text))
+        threshold=float(confidence_threshold if confidence_threshold is not None else os.getenv('CONFIDENCE_THRESHOLD','0.15'))
+        search=decision.get('search_query') or question
+        sources,confidence,suggestions=self._retrieve(search,top_k,threshold)
+        flags=[]
+        try:
+            if sources and self.generate==self._generate:
+                review=self._request(RELEVANCE_PROMPT,f'QUESTION: {question}\nCANDIDATES:\n{self._context(sources)}',json_output=True)
+                refs=review.get('section_ids')
+                if not isinstance(refs,list) or not all(isinstance(ref,str) and ref in {s['section_id'] for s in sources} for ref in refs):
+                    raise ValueError('Invalid policy review')
+                sources=[s for s in sources if s['section_id'] in refs]
+            if not sources:
+                confidence=0.0
+                escalation=build_escalation(question,confidence)
+                answer=self._request(MISSING_POLICY_PROMPT,
+                                     json.dumps({'question':question,'contact':escalation['contact'],'channel':escalation['channel'],'demo_contact':escalation['demo_contact']})) if self.generate==self._generate else self.generate(question,[])
+                flags=['no_sources_found']
+                mode='clarification'
+            else:
+                answer=self.generate(question,sources)
+                mentioned=set(re.findall(r'POL-\d+',answer.translate(str.maketrans({'\u2010':'-','\u2011':'-','\u2013':'-','\u2014':'-'}))))
                 if not mentioned or not mentioned.issubset({s['policy_number'] for s in sources}):
-                    answer = self._excerpt_answer(sources)
-                    flags = ['citation_validation_failed']
-            except Exception:
-                answer = self._excerpt_answer(sources)
-                flags = ['llm_error']
-        result = dict(answer=answer,citations=sources,confidence=confidence,
-            sources_used=len(sources),fallback_triggered=bool(flags),guardrail_flags=flags,
-            latency_ms=round((time.perf_counter()-start)*1000,2),
-            answer_mode='source_excerpt' if sources and flags else ('clarification' if not sources else 'generated'),
-            suggested_questions=suggestions,
-            escalation=build_escalation(question, confidence),show_confidence=True)
+                    answer=self._excerpt_answer(sources)
+                    flags=['citation_validation_failed']
+                mode='source_excerpt' if flags else 'generated'
+        except Exception:
+            flags=['llm_error']
+            if sources:
+                answer=self._excerpt_answer(sources)
+                mode='source_excerpt'
+            else:
+                confidence=0.0
+                answer='The AI service could not complete this response. Please try again, or use the HR contact below.'
+                mode='error'
+        result=dict(answer=answer,citations=sources,confidence=confidence,sources_used=len(sources),
+                    fallback_triggered=bool(flags),guardrail_flags=flags,latency_ms=round((time.perf_counter()-start)*1000,2),
+                    answer_mode=mode,suggested_questions=suggestions if not sources else [],
+                    escalation=build_escalation(question,confidence),show_confidence=True)
         self._log(question,result)
         return result
 

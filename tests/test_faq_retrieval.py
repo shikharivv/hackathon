@@ -3,7 +3,7 @@ from src.rag.runtime import PolicyRuntime
 
 @pytest.fixture
 def runtime(tmp_path):
-    return PolicyRuntime(log_path=tmp_path/'audit.sqlite3',generate=lambda q,s:'See '+s[0]['policy_number'])
+    return PolicyRuntime(log_path=tmp_path/'audit.sqlite3',generate=lambda q,s:('See '+s[0]['policy_number']) if s else ('Which type of leave do you need? Contact the HR Support Desk for help.'))
 
 @pytest.mark.parametrize('question',[
     'how can i apply for leave','how do i apply for annual leave',
