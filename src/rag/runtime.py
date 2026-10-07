@@ -76,7 +76,7 @@ class PolicyRuntime:
         if not key:
             raise ValueError('NVIDIA_API_KEY is not configured')
         payload = dict(model=os.getenv('NVIDIA_MODEL', 'nvidia/nemotron-3-super-120b-a12b'),
-                       temperature=0.2, top_p=1, max_tokens=8192, stream=False,
+                       temperature=0.3, top_p=1, max_tokens=8192, stream=False,
                        messages=[dict(role='system',content=system),dict(role='user',content=message)],
                        chat_template_kwargs={'enable_thinking':True})
         if json_output:

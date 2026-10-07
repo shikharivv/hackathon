@@ -133,7 +133,7 @@ The retrieval cutoff and human escalation thresholds serve different purposes. V
 
 - **Provider:** NVIDIA hosted inference at `https://integrate.api.nvidia.com/v1`.
 - **Model:** `nvidia/nemotron-3-super-120b-a12b`.
-- **Temperature:** `0.2`; **maximum completion tokens (including reasoning):** `8192`.
+- **Temperature:** `0.3`; **maximum completion tokens (including reasoning):** `8192`.
 - **System prompt:** `src/rag/answer_prompt.py` requests concise, practical answers supported by the supplied excerpts, with compact policy-section citations.
 
 #### 7. Guardrails & Citation
